@@ -1,9 +1,8 @@
 from unittest import TestCase
 from xmlrpclib import ServerProxy
 
-from illuminant.protocol import DaemonProtocol
+from illuminant.daemon import Daemon
 from illuminant.illuminant import Illuminant
-from SimpleXMLRPCServer import SimpleXMLRPCServer
 from threading import Thread
 import time
 import random
@@ -30,12 +29,10 @@ def run_illuminant(port):
 
 
 def run_daemon(port, illuminant_uri):
-    daemon = DaemonProtocol(port_to_uri(port), illuminant_uri)
+    daemon = Daemon(illuminant_uri, port=port)
 
     def _run_daemon():
-        server = SimpleXMLRPCServer(('localhost', port))
-        server.register_instance(daemon)
-        server.serve_forever()
+        daemon.start()
 
     thread = Thread(target=_run_daemon)
     thread.setDaemon(True)
@@ -48,17 +45,20 @@ CALLER_ID = '~'
 CALLER_API = 'http://localhost:65535'
 
 
-class Daemon(TestCase):
+class TestDaemon(TestCase):
     def setUp(self):
         illuminant_port = random.randrange(10000, 30000)
         daemon_port = random.randrange(10000, 30000)
         self.illuminant_obj = run_illuminant(illuminant_port)
-        self.daemon_handler = run_daemon(daemon_port, port_to_uri(illuminant_port))
+        self.daemon_obj = run_daemon(daemon_port, port_to_uri(illuminant_port))
         self.d = ServerProxy(port_to_uri(daemon_port))
         self.i = ServerProxy(port_to_uri(illuminant_port))
         while self.illuminant_obj.handler is None:
             time.sleep(0.01)
         self.illuminant_handler = self.illuminant_obj.handler
+        while self.daemon_obj.handler is None:
+            time.sleep(0.01)
+        self.daemon_handler = self.illuminant_obj.handler
 
     def test_Daemon(self):
         res = self.d.registerService(CALLER_ID, SERVICE, port_to_uri(0), CALLER_API)
