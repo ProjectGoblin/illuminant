@@ -7,34 +7,34 @@ from functools import total_ordering
 
 @total_ordering
 class ServiceRecord(object):
-    __slots__ = ('counter', 'service_uri', 'daemon_uri')
+    __slots__ = ('weight', 'service_uri', 'daemon_uri')
 
     def __init__(self, service_uri, daemon_uri):
-        self.counter = 0
+        self.weight = 0
         self.service_uri = service_uri
         self.daemon_uri = daemon_uri
 
     def __lt__(self, other):
         if isinstance(other, ServiceRecord):
-            return self.counter < other.counter
+            return self.weight < other.weight
         raise TypeError('Cannot compare ServiceRecord wit {}'.format(type(other)))
 
     def __eq__(self, other):
         if isinstance(other, ServiceRecord):
-            return self.caller_id == other.caller_id and self.service_api == other.service_api
+            return self.daemon_uri == other.daemon_uri and self.service_uri == other.service_uri
         raise TypeError('Cannot compare ServiceRecord wit {}'.format(type(other)))
 
-    def count(self, value=None):
+    def update_weigh(self, value=None):
         if value is None:
-            self.counter += 1
+            self.weight += 1
         else:
-            self.counter = value
+            self.weight = value
 
-    def match(self, caller_id, service_api):
-        return self.caller_id == caller_id and self.service_api == service_api
+    def match(self, service_uri, daemon_uri):
+        return self.daemon_uri == daemon_uri and self.service_uri == service_uri
 
     def value(self):
-        return self.caller_id, self.service_api
+        return self.daemon_uri, self.service_uri
 
 
 class LRUHeap:
@@ -43,29 +43,29 @@ class LRUHeap:
         self.heap = []
         self.size = 0
 
-    def insert(self, caller_id, service_api):
-        if not self.has(caller_id, service_api):
-            heapq.heappush(self.heap, self.record_type(caller_id, service_api))
+    def insert(self, service_uri, daemon_uri):
+        if not self.has(service_uri, daemon_uri):
+            heapq.heappush(self.heap, self.record_type(service_uri, daemon_uri))
             self.size += 1
 
-    def has(self, caller_id, service_api):
+    def has(self, service_uri, daemon_uri):
         for record in self.heap:
-            if record.match(caller_id, service_api):
+            if record.match(service_uri, daemon_uri):
                 return True
         else:
             return False
 
-    def remove(self, caller_id, service_api):
+    def remove(self, service_uri, daemon_uri):
         # mark
-        delete_counter = 0
+        delete_weight = 0
         for record in self.heap:
-            if record.match(caller_id, service_api):
-                record.count(-1)
-                delete_counter += 1
+            if record.match(service_uri, daemon_uri):
+                record.weight(-1)
+                delete_weight += 1
         # pop
-        if delete_counter > 0:
+        if delete_weight > 0:
             heapq.heapify(self.heap)
-            self.heap = self.heap[delete_counter:]
+            self.heap = self.heap[delete_weight:]
             heapq.heapify(self.heap)
 
     def __iter__(self):
@@ -74,7 +74,7 @@ class LRUHeap:
     def next(self):
         if self.size > 0:
             value = self.heap[0].value()
-            self.heap[0].count()
+            self.heap[0].update_weigh()
             heapq.heapify(self.heap)
             return value
         else:
