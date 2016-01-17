@@ -24,7 +24,7 @@ class ServiceRecord(object):
             return self.daemon_uri == other.daemon_uri and self.service_uri == other.service_uri
         raise TypeError('Cannot compare ServiceRecord wit {}'.format(type(other)))
 
-    def update_weigh(self, value=None):
+    def update_weight(self, value=None):
         if value is None:
             self.weight += 1
         else:
@@ -60,7 +60,7 @@ class LRUHeap:
         delete_weight = 0
         for record in self.heap:
             if record.match(service_uri, daemon_uri):
-                record.weight(-1)
+                record.update_weight(-1)
                 delete_weight += 1
         # pop
         if delete_weight > 0:
@@ -74,7 +74,7 @@ class LRUHeap:
     def next(self):
         if self.size > 0:
             value = self.heap[0].value()
-            self.heap[0].update_weigh()
+            self.heap[0].update_weight()
             heapq.heapify(self.heap)
             return value
         else:
