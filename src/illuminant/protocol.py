@@ -9,11 +9,25 @@ def interrupted_response(value):
     return 1, 'Interrupted by daemon', value
 
 
-class DaemonProtocol(object):
-    def __init__(self, daemon_uri, illuminant_uri):
-        self.daemon_uri = daemon_uri
+class OverwrittenAPI(object):
+    def __init__(self, illuminant_uri):
         self.illuminant_uri = illuminant_uri
         self.illuminant_proxy = ServerProxy(illuminant_uri)
+
+    def _dispatch(self, method, params):
+        """
+        Dispatch all methods not included in DaemonProtocol will be dispatch to Illuminant
+        """
+        if method in self.__dict__:
+            return self.__dict__[method](*params)
+        else:
+            return getattr(self.illuminant_proxy, method)(*params)
+
+
+class DaemonProtocol(OverwrittenAPI):
+    def __init__(self, daemon_uri, illuminant_uri):
+        super(DaemonProtocol, self).__init__(illuminant_uri)
+        self.daemon_uri = daemon_uri
 
     # METHODS FOR ILLUMINANT TO CONTROL SELL
     def launch(self, package_name):
