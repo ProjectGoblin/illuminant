@@ -64,6 +64,3 @@ class ServerProtocol(object):
 
     def unregCell(self, service, service_uri, daemon_uri):
         pass
-
-    def getCell(self, service):
-        pass
