@@ -54,4 +54,7 @@ class IlluminantHandler(ROSMasterHandler, ServerAPI):
             return code, msg, value
         else:  # otherwise, use a cell if possible
             uri = self._lookup_cell(service)
-            return ResponseFactory.uri_found(self, uri).pack()
+            if uri is None:
+                return ResponseFactory.unknown_service(service).pack()
+            else:
+                return ResponseFactory.uri_found(service, uri[1]).pack()
