@@ -5,6 +5,7 @@ from protocol import ServerProtocol
 from collections import defaultdict
 from lruheap import LRUHeap
 from goblin.xmlrpc.response import ResponseFactory
+from rosmaster.master_api import NUM_WORKERS
 
 
 class ServerAPI(ServerProtocol):
@@ -31,6 +32,10 @@ class ServerAPI(ServerProtocol):
 
 
 class IlluminantHandler(ROSMasterHandler, ServerAPI):
+    def __init__(self, num_workers=NUM_WORKERS):
+        super(ROSMasterHandler, self).__init__()
+        super(IlluminantHandler, self).__init__()
+
     def lookupService(self, caller_id, service):
         """
         Forked from ROSMasterHandler
