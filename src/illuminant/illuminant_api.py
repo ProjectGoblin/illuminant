@@ -1,7 +1,36 @@
+import threading
+
 from rosmaster.master_api import ROSMasterHandler
+from protocol import ServerProtocol
+from collections import defaultdict
+from lruheap import LRUHeap
+from goblin.xmlrpc.response import ResponseFactory
 
 
-class IlluminantHandler(ROSMasterHandler):
+class ServerAPI(ServerProtocol):
+    def __init__(self):
+        self.records = defaultdict(LRUHeap)
+        self.record_lock = threading.RLock()
+
+    def regCell(self, service, service_uri, daemon_uri):
+        with self.record_lock:
+            self.records[service].insert(service_uri, daemon_uri)
+        return ResponseFactory.service_reg(daemon_uri, service).pack()
+
+    def unregCell(self, service, service_uri, daemon_uri):
+        with self.record_lock:
+            self.records[service].remove(service_uri, daemon_uri)
+        return ResponseFactory.service_unreg(daemon_uri, service).pack()
+
+    def _lookup_cell(self, service):
+        uri = None
+        with self.record_lock:
+            if len(self.records) > 0:
+                uri = self.records[service].next()
+        return uri
+
+
+class IlluminantHandler(ROSMasterHandler, ServerAPI):
     def lookupService(self, caller_id, service):
         """
         Forked from ROSMasterHandler
@@ -19,4 +48,5 @@ class IlluminantHandler(ROSMasterHandler):
         if code == 1:  # if got a client-registered service, return it.
             return code, msg, value
         else:  # otherwise, use a cell if possible
-            print(2333)
+            uri = self._lookup_cell(service)
+            return ResponseFactory.uri_found(self, uri).pack()
