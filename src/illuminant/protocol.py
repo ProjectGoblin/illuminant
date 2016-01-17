@@ -13,13 +13,18 @@ class OverwrittenAPI(object):
     def __init__(self, illuminant_uri):
         self.illuminant_uri = illuminant_uri
         self.illuminant_proxy = ServerProxy(illuminant_uri)
+        self.methods = {
+            name: method
+            for name, method in type(self).__dict__.items()
+            if not name.startswith('_')
+            }
 
     def _dispatch(self, method, params):
         """
         Dispatch all methods not included in DaemonProtocol will be dispatch to Illuminant
         """
-        if method in self.__dict__:
-            return self.__dict__[method](*params)
+        if method in self.methods:
+            return self.methods[method](self, *params)
         else:
             return getattr(self.illuminant_proxy, method)(*params)
 
@@ -50,13 +55,13 @@ class DaemonProtocol(OverwrittenAPI):
         """
         This will register service to illuminant, not Master
         """
-        self.illuminant_proxy.regCell(service, service_api, self.daemon_uri)
+        return self.illuminant_proxy.regCell(service, service_api, self.daemon_uri)
 
     def unregisterService(self, caller_id, service, service_api):
         """
         This will unregister service from illuminant, not Master
         """
-        self.illuminant_proxy.unregCell(service, service_api, self.daemon_uri)
+        return self.illuminant_proxy.unregCell(service, service_api, self.daemon_uri)
 
     # THESE METHODS INTERRUPT ORIGINAL CALLS AND DO NOTHING
     def registerPublisher(self, caller_id, topic, topic_type, caller_api):
