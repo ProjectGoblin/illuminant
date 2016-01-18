@@ -3,6 +3,7 @@ Illuminant XML-RPC based protocol
 """
 
 from xmlrpclib import ServerProxy
+import subprocess
 
 
 def interrupted_response(value):
@@ -53,12 +54,19 @@ class DaemonProtocol(object):
         """
         This will register service to illuminant, not Master
         """
+        # map the port
+        _, port = service_api[9:].split(':')
+        subprocess.call(['iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '--dport', '30000', '-j', 'REDIRECT',
+                         '--to-ports', port])
         return self.illuminant_proxy.regCell(service, service_api, self.daemon_uri)
 
     def unregisterService(self, caller_id, service, service_api):
         """
         This will unregister service from illuminant, not Master
         """
+        # cancel port mapping
+        subprocess.call(['iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '--dport', '30000', '-j', 'REDIRECT',
+                         '--to-ports', '30000'])
         return self.illuminant_proxy.unregCell(service, service_api, self.daemon_uri)
 
     # THESE METHODS INTERRUPT ORIGINAL CALLS AND DO NOTHING
