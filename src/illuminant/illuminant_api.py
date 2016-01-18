@@ -6,12 +6,17 @@ from collections import defaultdict
 from lruheap import LRUHeap
 from goblin.xmlrpc.response import ResponseFactory
 from rosmaster.master_api import NUM_WORKERS
+from xmlrpclib import ServerProxy
+import os
 
 
 class ServerAPI(ServerProtocol):
     def __init__(self):
         self.records = defaultdict(LRUHeap)
         self.record_lock = threading.RLock()
+        host_ip = os.environ.get('HOST_IP', None)
+        self.trans_lock = threading.RLock()
+        self.trans = ServerProxy('http://{}:55555'.format(host_ip))
 
     def regCell(self, service, service_uri, daemon_uri):
         with self.record_lock:
@@ -57,4 +62,10 @@ class IlluminantHandler(ROSMasterHandler, ServerAPI):
             if uri is None:
                 return ResponseFactory.unknown_service(service).pack()
             else:
-                return ResponseFactory.uri_found(service, uri[1]).pack()
+                uri = uri[1]
+                with self.trans_lock:
+                    code, msg, parsed = self.trans.parse(uri)
+                if not parsed:
+                    return ResponseFactory.unknown_service(service).pack()
+                else:
+                    return ResponseFactory.uri_found(service, uri).pack()
