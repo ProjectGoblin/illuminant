@@ -31,7 +31,7 @@ class ServerAPI(ServerProtocol):
     def _lookup_cell(self, service):
         uri = None
         with self.record_lock:
-            if len(self.records) > 0:
+            if len(self.records[service]) > 0:
                 uri = self.records[service].next()
         return uri
 
@@ -68,4 +68,4 @@ class IlluminantHandler(ROSMasterHandler, ServerAPI):
                 if not parsed:
                     return ResponseFactory.unknown_service(service).pack()
                 else:
-                    return ResponseFactory.uri_found(service, uri).pack()
+                    return ResponseFactory.uri_found(service, parsed).pack()
