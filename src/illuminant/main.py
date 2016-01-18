@@ -7,6 +7,7 @@ import socket
 import rosmaster.master
 from rosmaster.main import NUM_WORKERS
 from illuminant import Illuminant
+from daemon import Daemon
 
 
 def configure_logging():
@@ -86,5 +87,21 @@ WARNING ACHTUNG WARNING ACHTUNG WARNING
         logger.info("keyboard interrupt, stopping master...")
         if illuminant is not None:
             illuminant.stop()
+    except Exception as e:
+        logger.error("error occurred, {}".format(e))
+
+
+def daemon_main():
+    configure_logging()
+    daemon = None
+    logger = logging.getLogger("daemon.main")
+    try:
+        daemon = Daemon('http://illuminant:11311')
+        daemon.start()
+        while daemon.ok():
+            time.sleep(.1)
+    except KeyboardInterrupt:
+        if daemon is not None:
+            daemon.stop()
     except Exception as e:
         logger.error("error occurred, {}".format(e))
