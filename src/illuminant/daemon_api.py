@@ -4,6 +4,12 @@ import threading
 
 
 class DaemonHandler(DaemonProtocol):
+    def _ok(self):
+        return True
+
+    def _shutdown(self):
+        return True
+
     def __init__(self, illuminant_uri):
         super(DaemonHandler, self).__init__(illuminant_uri)
         self.command = None
